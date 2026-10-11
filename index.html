@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Discover makeup, fashion, hairstyles and beauty tips tailored to your style.">
+  <title>Glow & Grace | Beauty and Style</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="navbar">
+    <a href="#home" class="logo">Glow <span>&</span> Grace</a>
+    <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav id="navLinks" aria-label="Main navigation">
+      <a href="#home">Home</a>
+      <a href="#makeup">Makeup</a>
+      <a href="#fashion">Fashion</a>
+      <a href="#beauty">Beauty Guide</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">🌙</button>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-content">
+        <p class="eyebrow">YOUR BEAUTY, YOUR RULES</p>
+        <h1>Find Your Glow.<br><span>Own Your Style.</span></h1>
+        <p>Discover makeup, fashion and beauty ideas
+          that celebrate your unique style.</p>
+        <a href="#beauty" class="btn">Find Your Makeup Colors ↗</a>
+      </div>
+      <div class="hero-image" role="img" aria-label="Beauty and makeup inspiration"></div>
+    </section>
+
+    <section class="section" id="makeup">
+      <p class="eyebrow">BEAUTY INSPIRATION</p>
+      <h2>Makeup for Every Moment</h2>
+      <p class="subtitle">A little inspiration for your next look.</p>
+
+      <div class="cards">
+        <article class="card">
+          <img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=650&q=80"
+            alt="Natural makeup inspiration" loading="lazy">
+          <div class="card-body">
+            <h3>Everyday Glow</h3>
+            <p>Soft blush, natural lips and a fresh look.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=650&q=80"
+            alt="Makeup products and brushes" loading="lazy">
+          <div class="card-body">
+            <h3>Party Glam</h3>
+            <p>Shimmering eyes, bold lips and statement style.</p>
+          </div>
+        </article>
+        <article class="card">
+          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=650&q=80"
+            alt="Fashion and personal style inspiration" loading="lazy">
+          <div class="card-body">
+            <h3>Soft & Elegant</h3>
+            <p>Romantic colors for a graceful, polished look.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section fashion-section" id="fashion">
+      <p class="eyebrow">STYLE YOUR WAY</p>
+      <h2>What Is Your Vibe?</h2>
+      <div class="style-grid">
+        <div class="style-item">
+          <span>01</span><h3>Casual Chic</h3>
+          <p>Jeans, pretty tops and everyday accessories.</p>
+        </div>
+        <div class="style-item">
+          <span>02</span><h3>Desi Elegance</h3>
+          <p>Kurtis, sarees, jhumkas and graceful hairstyles.</p>
+        </div>
+        <div class="style-item">
+          <span>03</span><h3>Party Glam</h3>
+          <p>Statement outfits, sparkling details and bold makeup.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section guide" id="beauty">
+      <p class="eyebrow">YOUR PERSONAL BEAUTY GUIDE</p>
+      <h2>Discover Your Makeup Palette</h2>
+      <p class="subtitle">
+        Choose your skin tone and undertone for personalized
+        color suggestions.
+      </p>
+
+      <form id="beautyForm" class="beauty-form">
+        <label for="skinTone">Your skin tone</label>
+        <select id="skinTone" required>
+          <option value="">Select skin tone</option>
+          <option value="fair">Fair</option>
+          <option value="light-medium">Light to medium</option>
+          <option value="medium">Medium</option>
+          <option value="deep">Deep</option>
+        </select>
+
+        <label for="undertone">Your undertone</label>
+        <select id="undertone" required>
+          <option value="">Select undertone</option>
+          <option value="warm">Warm — golden or yellowish</option>
+          <option value="cool">Cool — pinkish or rosy</option>
+          <option value="neutral">Neutral — a mix of both</option>
+          <option value="unsure">Not sure yet</option>
+        </select>
+
+        <label for="occasion">Makeup occasion</label>
+        <select id="occasion">
+          <option value="everyday">Everyday / College</option>
+          <option value="party">Party</option>
+          <option value="traditional">Traditional / Festive</option>
+        </select>
+
+        <button class="btn" type="submit">Get My Makeup Ideas ✨</button>
+      </form>
+
+      <div class="result-actions">
+        <button type="button" id="savePaletteBtn" class="btn secondary">Save Favourite 💖</button>
+        <button type="button" id="sharePaletteBtn" class="btn secondary">Share Palette 🔗</button>
+      </div>
+
+      <div id="result" class="result" aria-live="polite" hidden></div>
+
+      <div id="lookPreview" class="look-preview" aria-label="Makeup look preview">
+        <div class="preview-card preview-before">
+          <span>Before</span>
+          <div class="preview-face preview-face-before"></div>
+        </div>
+        <div class="preview-card preview-after">
+          <span>After</span>
+          <div class="preview-face preview-face-after"></div>
+        </div>
+      </div>
+
+      <aside class="favorites" aria-live="polite">
+        <h3>Saved Favourites</h3>
+        <ul id="favoriteList" class="favorite-list"></ul>
+      </aside>
+
+      <p class="note">These are starting suggestions, not strict rules.
+        Test shades in natural light to find your personal favorites.</p>
+    </section>
+  </main>
+
+  <footer>
+    <a href="#home" class="logo">Glow <span>&</span> Grace</a>
+    <p>Beauty is personal. Style is yours.</p>
+    <p class="copyright">© 2026 Glow & Grace. All rights reserved.</p>
+  </footer>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
