@@ -1,3 +1,6 @@
+/* Extended script: cart, downloads (JSON/PDF), and subscription demo */
+
+// --- existing selectors and data ---
 const menuBtn = document.getElementById("menuBtn");
 const navLinks = document.getElementById("navLinks");
 const themeToggle = document.getElementById("themeToggle");
@@ -5,12 +8,29 @@ const beautyForm = document.getElementById("beautyForm");
 const result = document.getElementById("result");
 const savePaletteBtn = document.getElementById("savePaletteBtn");
 const sharePaletteBtn = document.getElementById("sharePaletteBtn");
+const addToCartBtn = document.getElementById("addToCartBtn");
 const favoriteList = document.getElementById("favoriteList");
 const lookPreview = document.getElementById("lookPreview");
 
+const cartBtn = document.getElementById("cartBtn");
+const cartDrawer = document.getElementById("cartDrawer");
+const cartList = document.getElementById("cartList");
+const closeCartBtn = document.getElementById("closeCartBtn");
+const cartCount = document.getElementById("cartCount");
+const downloadCartJson = document.getElementById("downloadCartJson");
+const downloadCartPdf = document.getElementById("downloadCartPdf");
+const checkoutBtn = document.getElementById("checkoutBtn");
+
+const subscribeModal = document.getElementById("subscribeModal");
+const closeModal = document.getElementById("closeModal");
+const subscribeDemoBtn = document.getElementById("subscribeDemoBtn");
+
 const FAVORITES_KEY = "glowGraceFavorites";
 const THEME_KEY = "glowGraceTheme";
+const CART_KEY = "glowGraceCart";
+const SUB_KEY = "glowGraceSubscribed";
 
+// --- palette data ---
 const toneNames = {
   fair: "Fair",
   "light-medium": "Light to medium",
@@ -54,6 +74,7 @@ const occasions = {
 
 let currentPalette = null;
 
+// --- theme ---
 function applyTheme(theme) {
   const isDark = theme === "dark";
   document.body.classList.toggle("dark-mode", isDark);
@@ -73,6 +94,7 @@ function initTheme() {
   applyTheme(prefersDark ? "dark" : "light");
 }
 
+// --- nav ---
 menuBtn.addEventListener("click", () => {
   const isOpen = navLinks.classList.toggle("open");
   menuBtn.setAttribute("aria-expanded", String(isOpen));
@@ -90,6 +112,7 @@ themeToggle.addEventListener("click", () => {
   applyTheme(isDark ? "light" : "dark");
 });
 
+// --- palette building & preview ---
 function getAdvice(undertone) {
   if (undertone === "unsure") {
     return {
@@ -115,6 +138,7 @@ function buildPaletteFromForm() {
   const advice = getAdvice(undertone);
 
   return {
+    id: `${tone}_${undertone}_${occasion || 'everyday'}`,
     tone,
     undertone,
     occasion,
@@ -167,6 +191,7 @@ function applyPreview(palette) {
   afterFace.style.filter = "saturate(1.1)";
 }
 
+// --- URL handling ---
 function savePaletteToURL(palette) {
   const params = new URLSearchParams();
   params.set("tone", palette.tone);
@@ -209,6 +234,7 @@ function loadPaletteFromURL() {
   }
 }
 
+// --- favorites (unchanged) ---
 function readFavorites() {
   try {
     return JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
@@ -273,6 +299,145 @@ function renderFavorites() {
   });
 }
 
+// --- cart functionality ---
+function readCart() {
+  try {
+    return JSON.parse(localStorage.getItem(CART_KEY)) || [];
+  } catch { return []; }
+}
+
+function writeCart(items) {
+  localStorage.setItem(CART_KEY, JSON.stringify(items));
+  renderCart();
+}
+
+function addToCart(palette) {
+  const subscribed = localStorage.getItem(SUB_KEY) === "true";
+  // If site requires subscription for repeated actions, you can gate here.
+  if (!subscribed && readCart().length >= 3) {
+    // demo policy: non-subscribers can add up to 3 items
+    openSubscribeModal();
+    return;
+  }
+
+  const cart = readCart();
+  cart.push(palette);
+  writeCart(cart);
+  result.hidden = false;
+  result.innerHTML = "<h3>Added to cart 🛍️</h3><p>Your palette was added to the cart.</p>";
+}
+
+function removeFromCart(index) {
+  const cart = readCart();
+  cart.splice(index, 1);
+  writeCart(cart);
+}
+
+function renderCart() {
+  const cart = readCart();
+  cartList.innerHTML = "";
+  cartCount.textContent = cart.length;
+
+  if (!cart.length) {
+    cartList.innerHTML = "<li class='cart-item'>Your cart is empty.</li>";
+    return;
+  }
+
+  cart.forEach((item, idx) => {
+    const li = document.createElement("li");
+    li.className = "cart-item";
+    li.innerHTML = `
+      <div>
+        <strong>${item.skinToneText}</strong>
+        <div class="muted">${item.undertoneText} · ${item.occasion || 'Everyday'}</div>
+      </div>
+      <div>
+        <button class="icon-btn" data-index="${idx}" aria-label="Remove item">Remove</button>
+      </div>
+    `;
+    cartList.appendChild(li);
+  });
+
+  cartList.querySelectorAll("button[data-index]").forEach(btn => {
+    btn.addEventListener("click", () => removeFromCart(Number(btn.dataset.index)));
+  });
+}
+
+// --- cart downloads ---
+function downloadCartJSON() {
+  const cart = readCart();
+  if (!cart.length) {
+    result.hidden = false;
+    result.textContent = "Cart is empty.";
+    return;
+  }
+
+  const blob = new Blob([JSON.stringify(cart, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'glow-grace-cart.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadCartPDF() {
+  const cart = readCart();
+  if (!cart.length) {
+    result.hidden = false;
+    result.textContent = "Cart is empty.";
+    return;
+  }
+
+  // Use jsPDF to create a simple PDF
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(18);
+  doc.text('Glow & Grace - Cart', 14, 22);
+  doc.setFontSize(12);
+  let y = 36;
+  cart.forEach((item, idx) => {
+    doc.text(`${idx+1}. ${item.skinToneText} — ${item.undertoneText} (${item.occasion || 'Everyday'})`, 14, y);
+    y += 6;
+    doc.text(`   Lipstick: ${item.lipstick}`, 18, y);
+    y += 6;
+    doc.text(`   Blush: ${item.blush}`, 18, y);
+    y += 10;
+    if (y > 270) { doc.addPage(); y = 20; }
+  });
+
+  doc.save('glow-grace-cart.pdf');
+}
+
+// --- subscribe modal & demo subscription ---
+function openSubscribeModal() {
+  subscribeModal.classList.add('open');
+  subscribeModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeSubscribeModal() {
+  subscribeModal.classList.remove('open');
+  subscribeModal.setAttribute('aria-hidden', 'true');
+}
+
+closeModal.addEventListener('click', closeSubscribeModal);
+
+subscribeDemoBtn.addEventListener('click', () => {
+  // Demo subscription: set a flag in localStorage
+  localStorage.setItem(SUB_KEY, 'true');
+  closeSubscribeModal();
+  result.hidden = false;
+  result.innerHTML = '<h3>Subscribed 🎉</h3><p>You are now subscribed (demo). Refresh to keep the state.</p>';
+});
+
+// Checkout button opens subscription modal (or real checkout if server configured)
+checkoutBtn.addEventListener('click', () => {
+  // If you have a server with Stripe, you would call the server to create a Checkout session
+  // For this demo we simply open the subscribe modal
+  openSubscribeModal();
+});
+
+// --- event wiring ---
 beautyForm.addEventListener("submit", event => {
   event.preventDefault();
 
@@ -351,11 +516,38 @@ sharePaletteBtn.addEventListener("click", async () => {
   }
 });
 
-initTheme();
-renderFavorites();
-loadPaletteFromURL();
+// Add to cart
+addToCartBtn.addEventListener('click', () => {
+  if (!currentPalette) {
+    result.hidden = false;
+    result.textContent = 'Generate a palette first.';
+    return;
+  }
+  addToCart(currentPalette);
+});
 
-if (lookPreview) {
-  lookPreview.style.setProperty("--skin-tone", "#f2d1bd");
+// Cart UI
+cartBtn.addEventListener('click', () => {
+  cartDrawer.classList.toggle('open');
+  cartDrawer.setAttribute('aria-hidden', cartDrawer.classList.contains('open') ? 'false' : 'true');
+  renderCart();
+});
+
+closeCartBtn.addEventListener('click', () => {
+  cartDrawer.classList.remove('open');
+  cartDrawer.setAttribute('aria-hidden', 'true');
+});
+
+downloadCartJson.addEventListener('click', downloadCartJSON);
+downloadCartPdf.addEventListener('click', downloadCartPDF);
+
+// --- initialize ---
+function init() {
+  initTheme();
+  renderFavorites();
+  renderCart();
+  loadPaletteFromURL();
 }
+
+init();
 
