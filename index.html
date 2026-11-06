@@ -1,32 +1,30 @@
-<!-- Added cart UI, subscribe modal, and jsPDF/Stripe scripts -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Discover makeup, fashion, hairstyles and beauty tips tailored to your style.">
+  <meta name="theme-color" content="#fff9f6">
   <title>Glow & Grace | Beauty and Style</title>
   <link rel="stylesheet" href="style.css">
-  <!-- jsPDF for PDF downloads -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-  <!-- Stripe.js (optional, used only if you configure a server) -->
-  <script src="https://js.stripe.com/v3/" defer></script>
   <script src="script.js" defer></script>
 </head>
 <body>
   <header class="navbar">
     <a href="#home" class="logo">Glow <span>&</span> Grace</a>
-    <div class="header-actions">
-      <button class="icon-btn" id="cartBtn" aria-label="Open cart">🛒 <span id="cartCount" class="cart-count">0</span></button>
-      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">🌙</button>
-    </div>
-    <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation" aria-expanded="false">☰</button>
     <nav id="navLinks" aria-label="Main navigation">
       <a href="#home">Home</a>
       <a href="#makeup">Makeup</a>
       <a href="#fashion">Fashion</a>
+      <a href="#shop">Shop</a>
       <a href="#beauty">Beauty Guide</a>
     </nav>
+    <div class="header-actions">
+      <button class="icon-btn cart-open" id="cartBtn" type="button" aria-label="Open shopping cart">🛍️ <span id="cartCount" class="cart-count">0</span></button>
+      <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode">🌙</button>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navLinks">☰</button>
+    </div>
   </header>
 
   <main>
@@ -34,107 +32,108 @@
       <div class="hero-content">
         <p class="eyebrow">YOUR BEAUTY, YOUR RULES</p>
         <h1>Find Your Glow.<br><span>Own Your Style.</span></h1>
-        <p>Discover makeup, fashion and beauty ideas
-          that celebrate your unique style.</p>
+        <p>Discover makeup, fashion and beauty ideas that celebrate your unique style.</p>
         <a href="#beauty" class="btn">Find Your Makeup Colors ↗</a>
       </div>
       <div class="hero-image" role="img" aria-label="Beauty and makeup inspiration"></div>
     </section>
 
-    <!-- ... other sections unchanged ... -->
+    <section class="section" id="makeup">
+      <p class="eyebrow">BEAUTY INSPIRATION</p>
+      <h2>Makeup for Every Moment</h2>
+      <p class="subtitle">A little inspiration for your next look.</p>
+      <div class="cards">
+        <article class="card">
+          <img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=650&q=80" alt="Natural makeup inspiration" loading="lazy">
+          <div class="card-body"><h3>Everyday Glow</h3><p>Soft blush, natural lips and a fresh look.</p></div>
+        </article>
+        <article class="card">
+          <img src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=650&q=80" alt="Makeup products and brushes" loading="lazy">
+          <div class="card-body"><h3>Party Glam</h3><p>Shimmering eyes, bold lips and statement style.</p></div>
+        </article>
+        <article class="card">
+          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=650&q=80" alt="Fashion and personal style inspiration" loading="lazy">
+          <div class="card-body"><h3>Soft & Elegant</h3><p>Romantic colors for a graceful, polished look.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section fashion-section" id="fashion">
+      <p class="eyebrow">STYLE YOUR WAY</p>
+      <h2>What Is Your Vibe?</h2>
+      <div class="style-grid">
+        <article class="style-item"><span>01</span><h3>Casual Chic</h3><p>Jeans, pretty tops and everyday accessories.</p></article>
+        <article class="style-item"><span>02</span><h3>Desi Elegance</h3><p>Kurtis, sarees, jhumkas and graceful hairstyles.</p></article>
+        <article class="style-item"><span>03</span><h3>Party Glam</h3><p>Statement outfits, sparkling details and bold makeup.</p></article>
+      </div>
+    </section>
+
+    <section class="section shop-section" id="shop">
+      <p class="eyebrow">THE GLOW EDIT</p>
+      <h2>Beauty Bag Essentials</h2>
+      <p class="subtitle">A sample product collection for your beauty bag. Prices and checkout are illustrative; no purchase is processed here.</p>
+      <div class="product-grid" id="productGrid" aria-live="polite"></div>
+    </section>
 
     <section class="section guide" id="beauty">
       <p class="eyebrow">YOUR PERSONAL BEAUTY GUIDE</p>
       <h2>Discover Your Makeup Palette</h2>
-      <p class="subtitle">
-        Choose your skin tone and undertone for personalized
-        color suggestions.
-      </p>
-
+      <p class="subtitle">Choose your skin tone and undertone for personalized color suggestions.</p>
       <form id="beautyForm" class="beauty-form">
         <label for="skinTone">Your skin tone</label>
         <select id="skinTone" required>
-          <option value="">Select skin tone</option>
-          <option value="fair">Fair</option>
-          <option value="light-medium">Light to medium</option>
-          <option value="medium">Medium</option>
-          <option value="deep">Deep</option>
+          <option value="">Select skin tone</option><option value="fair">Fair</option><option value="light-medium">Light to medium</option><option value="medium">Medium</option><option value="deep">Deep</option>
         </select>
-
         <label for="undertone">Your undertone</label>
         <select id="undertone" required>
-          <option value="">Select undertone</option>
-          <option value="warm">Warm — golden or yellowish</option>
-          <option value="cool">Cool — pinkish or rosy</option>
-          <option value="neutral">Neutral — a mix of both</option>
-          <option value="unsure">Not sure yet</option>
+          <option value="">Select undertone</option><option value="warm">Warm — golden or yellowish</option><option value="cool">Cool — pinkish or rosy</option><option value="neutral">Neutral — a mix of both</option><option value="unsure">Not sure yet</option>
         </select>
-
         <label for="occasion">Makeup occasion</label>
-        <select id="occasion">
-          <option value="everyday">Everyday / College</option>
-          <option value="party">Party</option>
-          <option value="traditional">Traditional / Festive</option>
-        </select>
-
+        <select id="occasion"><option value="everyday">Everyday / College</option><option value="party">Party</option><option value="traditional">Traditional / Festive</option></select>
         <button class="btn" type="submit">Get My Makeup Ideas ✨</button>
       </form>
-
       <div class="result-actions">
         <button type="button" id="savePaletteBtn" class="btn secondary">Save Favourite 💖</button>
         <button type="button" id="sharePaletteBtn" class="btn secondary">Share Palette 🔗</button>
-        <button type="button" id="addToCartBtn" class="btn secondary">Add to Cart 🛍️</button>
+        <button type="button" id="downloadPaletteBtn" class="btn secondary">Download Palette</button>
       </div>
-
       <div id="result" class="result" aria-live="polite" hidden></div>
-
-      <div id="lookPreview" class="look-preview" aria-label="Makeup look preview">
-        <div class="preview-card preview-before">
-          <span>Before</span>
-          <div class="preview-face preview-face-before"></div>
-        </div>
-        <div class="preview-card preview-after">
-          <span>After</span>
-          <div class="preview-face preview-face-after"></div>
-        </div>
-      </div>
-
-      <aside class="favorites" aria-live="polite">
-        <h3>Saved Favourites</h3>
+      <div class="palette-preview" id="palettePreview" hidden aria-label="Palette color swatches"></div>
+      <aside class="favorites" aria-labelledby="favoritesTitle">
+        <h3 id="favoritesTitle">Saved Favourites</h3>
         <ul id="favoriteList" class="favorite-list"></ul>
       </aside>
+      <p class="note">These are starting suggestions, not strict rules. Test shades in natural light to find your personal favorites. Beauty recommendations are informational and not medical advice.</p>
+    </section>
 
-      <p class="note">These are starting suggestions, not strict rules.
-        Test shades in natural light to find your personal favorites.</p>
+    <section class="section membership-section" aria-labelledby="membershipTitle">
+      <p class="eyebrow">THE GLOW CLUB</p>
+      <h2 id="membershipTitle">Interested in membership?</h2>
+      <p class="subtitle">A real subscription requires a secure payment and account service. Membership checkout is not enabled on this static demo.</p>
+      <button type="button" class="btn" id="subscribeBtn">Membership details</button>
+      <p id="membershipStatus" class="note" aria-live="polite"></p>
     </section>
   </main>
 
-  <!-- Cart drawer -->
-  <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
-    <div class="cart-header">
-      <h3>Your Cart</h3>
-      <button id="closeCartBtn" class="icon-btn" aria-label="Close cart">✕</button>
-    </div>
+  <div class="overlay" id="overlay" hidden></div>
+  <aside id="cartDrawer" class="cart-drawer" aria-labelledby="cartTitle" aria-hidden="true">
+    <div class="cart-header"><h2 id="cartTitle">Your Cart</h2><button id="closeCartBtn" class="icon-btn" type="button" aria-label="Close cart">✕</button></div>
     <ul id="cartList" class="cart-list"></ul>
+    <p id="cartTotal" class="cart-total">Total: $0.00</p>
     <div class="cart-actions">
-      <button id="downloadCartJson" class="btn secondary">Download JSON</button>
-      <button id="downloadCartPdf" class="btn secondary">Download PDF</button>
-      <button id="checkoutBtn" class="btn">Subscribe / Checkout</button>
+      <button id="downloadCartJson" class="btn secondary" type="button">JSON</button>
+      <button id="downloadCartCsv" class="btn secondary" type="button">CSV</button>
+      <button id="downloadCartPdf" class="btn secondary" type="button">PDF</button>
     </div>
+    <p class="note">Cart is saved in this browser. Checkout is not enabled.</p>
   </aside>
 
-  <!-- Subscribe modal (simple, demo) -->
-  <div id="subscribeModal" class="modal" aria-hidden="true" role="dialog" aria-label="Subscribe">
-    <div class="modal-content">
-      <button id="closeModal" class="icon-btn" aria-label="Close">✕</button>
-      <h3>Subscribe to Glow & Grace</h3>
-      <p>Subscribe to unlock unlimited saves, downloads, and premium palettes.</p>
-      <div class="pricing">
-        <button id="subscribeDemoBtn" class="btn">Subscribe (Demo)</button>
-        <p class="muted">To accept real payments, configure Stripe on the server (see /server example).</p>
-      </div>
-    </div>
-  </div>
+  <dialog id="infoDialog" class="info-dialog">
+    <form method="dialog"><button class="icon-btn dialog-close" aria-label="Close">✕</button></form>
+    <h2>Glow Club membership</h2>
+    <p>Paid membership isn't available yet. This site does not collect payment details or grant paid access. A production subscription needs a server-verified payment and account system.</p>
+    <button class="btn" type="button" id="closeInfoDialog">Got it</button>
+  </dialog>
 
   <footer>
     <a href="#home" class="logo">Glow <span>&</span> Grace</a>

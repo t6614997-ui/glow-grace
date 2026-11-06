@@ -1,553 +1,208 @@
-/* Extended script: cart, downloads (JSON/PDF), and subscription demo */
+const $ = (selector, root = document) => root.querySelector(selector);
+const menuBtn = $("#menuBtn");
+const navLinks = $("#navLinks");
+const themeToggle = $("#themeToggle");
+const beautyForm = $("#beautyForm");
+const result = $("#result");
+const palettePreview = $("#palettePreview");
+const favoriteList = $("#favoriteList");
+const cartDrawer = $("#cartDrawer");
+const cartList = $("#cartList");
+const cartCount = $("#cartCount");
+const cartTotal = $("#cartTotal");
+const overlay = $("#overlay");
+const infoDialog = $("#infoDialog");
 
-// --- existing selectors and data ---
-const menuBtn = document.getElementById("menuBtn");
-const navLinks = document.getElementById("navLinks");
-const themeToggle = document.getElementById("themeToggle");
-const beautyForm = document.getElementById("beautyForm");
-const result = document.getElementById("result");
-const savePaletteBtn = document.getElementById("savePaletteBtn");
-const sharePaletteBtn = document.getElementById("sharePaletteBtn");
-const addToCartBtn = document.getElementById("addToCartBtn");
-const favoriteList = document.getElementById("favoriteList");
-const lookPreview = document.getElementById("lookPreview");
-
-const cartBtn = document.getElementById("cartBtn");
-const cartDrawer = document.getElementById("cartDrawer");
-const cartList = document.getElementById("cartList");
-const closeCartBtn = document.getElementById("closeCartBtn");
-const cartCount = document.getElementById("cartCount");
-const downloadCartJson = document.getElementById("downloadCartJson");
-const downloadCartPdf = document.getElementById("downloadCartPdf");
-const checkoutBtn = document.getElementById("checkoutBtn");
-
-const subscribeModal = document.getElementById("subscribeModal");
-const closeModal = document.getElementById("closeModal");
-const subscribeDemoBtn = document.getElementById("subscribeDemoBtn");
-
-const FAVORITES_KEY = "glowGraceFavorites";
-const THEME_KEY = "glowGraceTheme";
-const CART_KEY = "glowGraceCart";
-const SUB_KEY = "glowGraceSubscribed";
-
-// --- palette data ---
-const toneNames = {
-  fair: "Fair",
-  "light-medium": "Light to medium",
-  medium: "Medium",
-  deep: "Deep"
+const KEYS = { favorites: "glowGraceFavorites", cart: "glowGraceCart", theme: "glowGraceTheme" };
+const toneNames = { fair: "Fair", "light-medium": "Light to medium", medium: "Medium", deep: "Deep" };
+const swatchColors = { warm: ["#d98262", "#e9ad6c", "#a85e3d"], cool: ["#bd6788", "#9a7693", "#794b65"], neutral: ["#c88c78", "#b59a79", "#896b75"], unsure: ["#d89b83", "#c2a184", "#9b7180"] };
+const advice = {
+  warm: { lipstick: "Peach, coral, warm nude and terracotta", blush: "Peach, apricot and warm rose", eyes: "Bronze, copper, warm brown and gold", foundation: "Test warm or golden undertones along your jawline." },
+  cool: { lipstick: "Berry, mauve, rose and blue-red", blush: "Cool pink, rose and berry", eyes: "Plum, taupe, rosy pink and silver", foundation: "Test cool or rosy undertones along your jawline." },
+  neutral: { lipstick: "Rose, pink-brown, neutral nude and berry", blush: "Soft rose, peach-pink and muted mauve", eyes: "Taupe, champagne, brown and rose", foundation: "Test neutral undertones along your jawline." },
+  unsure: { lipstick: "Explore rose, peach and neutral nude shades", blush: "Try soft rose and peach-pink", eyes: "Try taupe, champagne and soft brown", foundation: "Compare warm, cool and neutral samples in natural light." }
 };
-
-const toneColors = {
-  fair: "#f2d1bd",
-  "light-medium": "#d7a17e",
-  medium: "#b67a58",
-  deep: "#7c4b38"
-};
-
-const undertoneAdvice = {
-  warm: {
-    lipstick: "Peach, coral, warm nude and terracotta",
-    blush: "Peach, apricot and warm rose",
-    eyes: "Bronze, copper, warm brown and gold",
-    foundation: "Test warm or golden undertones along your jawline."
-  },
-  cool: {
-    lipstick: "Berry, mauve, rose and blue-red",
-    blush: "Cool pink, rose and berry",
-    eyes: "Plum, taupe, rosy pink and silver",
-    foundation: "Test cool or rosy undertones along your jawline."
-  },
-  neutral: {
-    lipstick: "Rose, pink-brown, neutral nude and berry",
-    blush: "Soft rose, peach-pink and muted mauve",
-    eyes: "Taupe, champagne, brown and rose",
-    foundation: "Test neutral undertones along your jawline."
-  }
-};
-
 const occasions = {
   everyday: "Try light coverage, a little blush, mascara and tinted lip balm.",
   party: "Try more defined eyes, layered blush and a lipstick you love.",
   traditional: "Try gold or bronze eyeshadow, kajal and rose or berry lipstick."
 };
-
+const products = [
+  { id: "lip-tint", name: "Everyday Lip Tint", price: 12.5, description: "A soft, buildable tint for an easy everyday look.", image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=650&q=80" },
+  { id: "blush", name: "Petal Blush", price: 16, description: "A blendable blush with a natural-looking finish.", image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=650&q=80" },
+  { id: "brush-set", name: "Soft Touch Brush Set", price: 24, description: "A sample brush set for your daily beauty routine.", image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=650&q=80" }
+];
 let currentPalette = null;
 
-// --- theme ---
-function applyTheme(theme) {
-  const isDark = theme === "dark";
-  document.body.classList.toggle("dark-mode", isDark);
-  themeToggle.textContent = isDark ? "☀️" : "🌙";
-  themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
-  localStorage.setItem(THEME_KEY, theme);
+function readStorage(key, fallback) {
+  try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; }
+  catch { return fallback; }
 }
-
+function writeStorage(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch { showMessage("Your browser could not save this. Check available storage space."); return false; }
+}
+function showMessage(message, title = "Glow & Grace") {
+  result.replaceChildren();
+  const heading = document.createElement("h3"); heading.textContent = title;
+  const paragraph = document.createElement("p"); paragraph.textContent = message;
+  result.append(heading, paragraph); result.hidden = false;
+}
+function setTheme(theme) {
+  document.body.classList.toggle("dark-mode", theme === "dark");
+  themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+  themeToggle.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  try { localStorage.setItem(KEYS.theme, theme); } catch { /* Theme still works for this visit. */ }
+}
 function initTheme() {
-  const savedTheme = localStorage.getItem(THEME_KEY);
-  if (savedTheme) {
-    applyTheme(savedTheme);
-    return;
-  }
-
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  applyTheme(prefersDark ? "dark" : "light");
+  let theme;
+  try { theme = localStorage.getItem(KEYS.theme); } catch { theme = null; }
+  if (!theme) theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  setTheme(theme);
 }
-
-// --- nav ---
-menuBtn.addEventListener("click", () => {
-  const isOpen = navLinks.classList.toggle("open");
-  menuBtn.setAttribute("aria-expanded", String(isOpen));
-});
-
-navLinks.querySelectorAll("a").forEach(link => {
-  link.addEventListener("click", () => {
-    navLinks.classList.remove("open");
-    menuBtn.setAttribute("aria-expanded", "false");
-  });
-});
-
-themeToggle.addEventListener("click", () => {
-  const isDark = document.body.classList.contains("dark-mode");
-  applyTheme(isDark ? "light" : "dark");
-});
-
-// --- palette building & preview ---
-function getAdvice(undertone) {
-  if (undertone === "unsure") {
-    return {
-      lipstick: "Explore rose, peach and neutral nude shades.",
-      blush: "Try soft rose and peach-pink.",
-      eyes: "Try taupe, champagne and soft brown.",
-      foundation: "Compare warm, cool and neutral samples in natural light."
-    };
-  }
-
-  return undertoneAdvice[undertone];
+function buildPalette() {
+  const tone = $("#skinTone").value;
+  const undertone = $("#undertone").value;
+  const occasion = $("#occasion").value;
+  if (!tone || !undertone) return null;
+  return { tone, undertone, occasion, skinToneText: toneNames[tone], undertoneText: undertone === "unsure" ? "Not sure yet" : undertone[0].toUpperCase() + undertone.slice(1), lipstick: advice[undertone].lipstick, blush: advice[undertone].blush, eyes: advice[undertone].eyes, foundation: advice[undertone].foundation, look: occasions[occasion] };
 }
-
-function buildPaletteFromForm() {
-  const tone = document.getElementById("skinTone").value;
-  const undertone = document.getElementById("undertone").value;
-  const occasion = document.getElementById("occasion").value;
-
-  if (!tone || !undertone) {
-    return null;
-  }
-
-  const advice = getAdvice(undertone);
-
-  return {
-    id: `${tone}_${undertone}_${occasion || 'everyday'}`,
-    tone,
-    undertone,
-    occasion,
-    skinToneText: toneNames[tone],
-    undertoneText: undertone === "unsure" ? "Not sure yet" : undertone.charAt(0).toUpperCase() + undertone.slice(1),
-    lookText: occasions[occasion] || "Try a polished look that suits your mood.",
-    lipstick: advice.lipstick,
-    blush: advice.blush,
-    eyes: advice.eyes,
-    foundation: advice.foundation,
-    previewColor: toneColors[tone]
-  };
-}
-
-function renderResult(palette) {
-  result.innerHTML = `
-    <h3>Your Beauty Palette ✨</h3>
-    <p><strong>Skin tone:</strong> ${palette.skinToneText}</p>
-    <p><strong>Undertone:</strong> ${palette.undertoneText}</p>
-    <p><strong>Lipstick:</strong> ${palette.lipstick}</p>
-    <p><strong>Blush:</strong> ${palette.blush}</p>
-    <p><strong>Eyeshadow:</strong> ${palette.eyes}</p>
-    <p><strong>Foundation tip:</strong> ${palette.foundation}</p>
-    <p><strong>Your look:</strong> ${palette.lookText}</p>
-  `;
-
+function renderPalette(palette) {
+  const heading = document.createElement("h3"); heading.textContent = "Your Beauty Palette ✨";
+  const rows = [ ["Skin tone", palette.skinToneText], ["Undertone", palette.undertoneText], ["Lipstick", palette.lipstick], ["Blush", palette.blush], ["Eyeshadow", palette.eyes], ["Foundation tip", palette.foundation], ["Your look", palette.look] ];
+  result.replaceChildren(heading);
+  rows.forEach(([label, text]) => { const p = document.createElement("p"); const strong = document.createElement("strong"); strong.textContent = `${label}: `; p.append(strong, document.createTextNode(text)); result.append(p); });
   result.hidden = false;
-  result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  renderSwatches(palette.undertone);
 }
-
-function applyPreview(palette) {
-  const beforeFace = document.querySelector(".preview-face-before");
-  const afterFace = document.querySelector(".preview-face-after");
-
-  const tone = palette.previewColor || "#f2d1bd";
-  beforeFace.style.setProperty("--skin-tone", "#f6d7c4");
-  afterFace.style.setProperty("--skin-tone", tone);
-  beforeFace.style.background = "linear-gradient(180deg, #f7d9c8, #d7ac8d)";
-  afterFace.style.background = `linear-gradient(180deg, ${tone}, #d0a984)`;
-
-  const accentColors = {
-    warm: "#d78a5d",
-    cool: "#b9638b",
-    neutral: "#d8b26c",
-    unsure: "#d78a5d"
-  };
-
-  const accent = accentColors[palette.undertone] || "#d78a5d";
-  afterFace.style.boxShadow = `inset 0 0 0 2px rgba(122, 76, 65, 0.06), 0 8px 20px rgba(0,0,0,0.06), 0 0 0 6px ${accent}33`;
-  afterFace.style.filter = "saturate(1.1)";
+function renderSwatches(undertone) {
+  palettePreview.replaceChildren();
+  const names = ["Lip", "Blush", "Eyes"];
+  (swatchColors[undertone] || swatchColors.unsure).forEach((color, index) => {
+    const item = document.createElement("div"); item.className = "swatch";
+    const chip = document.createElement("span"); chip.className = "swatch-color"; chip.style.backgroundColor = color; chip.setAttribute("aria-label", `${names[index]} shade ${color}`);
+    const label = document.createElement("span"); label.textContent = names[index];
+    item.append(chip, label); palettePreview.append(item);
+  });
+  palettePreview.hidden = false;
 }
-
-// --- URL handling ---
-function savePaletteToURL(palette) {
-  const params = new URLSearchParams();
-  params.set("tone", palette.tone);
-  params.set("undertone", palette.undertone);
-  params.set("occasion", palette.occasion || "everyday");
-
-  const url = `${window.location.pathname}?${params.toString()}`;
-  window.history.replaceState({}, "", url);
+function renderProducts() {
+  const grid = $("#productGrid");
+  products.forEach(product => {
+    const article = document.createElement("article"); article.className = "product-card";
+    const image = document.createElement("img"); image.src = product.image; image.alt = product.name; image.loading = "lazy";
+    const body = document.createElement("div"); body.className = "product-body";
+    const title = document.createElement("h3"); title.textContent = product.name;
+    const description = document.createElement("p"); description.textContent = product.description;
+    const price = document.createElement("span"); price.className = "product-price"; price.textContent = `$${product.price.toFixed(2)} (sample price)`;
+    const button = document.createElement("button"); button.type = "button"; button.className = "btn"; button.textContent = "Add to cart"; button.addEventListener("click", () => addProduct(product.id));
+    body.append(title, description, price, button); article.append(image, body); grid.append(article);
+  });
 }
-
-function loadPaletteFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  const tone = params.get("tone");
-  const undertone = params.get("undertone");
-  const occasion = params.get("occasion");
-
-  if (!tone || !undertone) return;
-
-  const toneSelect = document.getElementById("skinTone");
-  const undertoneSelect = document.getElementById("undertone");
-  const occasionSelect = document.getElementById("occasion");
-
-  if (toneSelect && Array.from(toneSelect.options).some(option => option.value === tone)) {
-    toneSelect.value = tone;
-  }
-
-  if (undertoneSelect && Array.from(undertoneSelect.options).some(option => option.value === undertone)) {
-    undertoneSelect.value = undertone;
-  }
-
-  if (occasionSelect && Array.from(occasionSelect.options).some(option => option.value === occasion)) {
-    occasionSelect.value = occasion;
-  }
-
-  const palette = buildPaletteFromForm();
-  if (palette) {
-    currentPalette = palette;
-    applyPreview(palette);
-    renderResult(palette);
-  }
+function readFavorites() { const value = readStorage(KEYS.favorites, []); return Array.isArray(value) ? value : []; }
+function saveFavorite() {
+  if (!currentPalette) return showMessage("Create a palette before saving a favourite.");
+  const favorites = readFavorites();
+  if (favorites.some(item => item.tone === currentPalette.tone && item.undertone === currentPalette.undertone && item.occasion === currentPalette.occasion)) return showMessage("This palette is already saved.");
+  favorites.unshift(currentPalette); writeStorage(KEYS.favorites, favorites); renderFavorites(); showMessage("Your palette was saved in this browser.", "Saved 💖");
 }
-
-// --- favorites (unchanged) ---
-function readFavorites() {
-  try {
-    return JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
-
-function writeFavorites(favorites) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-}
-
 function renderFavorites() {
+  favoriteList.replaceChildren();
   const favorites = readFavorites();
-  favoriteList.innerHTML = "";
-
-  if (!favorites.length) {
-    favoriteList.innerHTML = "<li class=\"favorite-item\"><span class=\"favorite-meta\">No favourites saved yet.</span></li>";
-    return;
-  }
-
+  if (!favorites.length) { const empty = document.createElement("li"); empty.className = "favorite-item"; empty.textContent = "No favourites saved yet."; favoriteList.append(empty); return; }
   favorites.forEach((item, index) => {
-    const li = document.createElement("li");
-    li.className = "favorite-item";
-
-    const meta = document.createElement("div");
-    meta.className = "favorite-meta";
-    meta.innerHTML = `
-      <strong>${item.skinToneText}</strong>
-      <span>${item.undertoneText} · ${item.occasion || "Everyday"}</span>
-      <span>${item.lipstick}</span>
-    `;
-
-    const useBtn = document.createElement("button");
-    useBtn.type = "button";
-    useBtn.textContent = "Use";
-    useBtn.addEventListener("click", () => {
-      currentPalette = item;
-      applyPreview(item);
-      renderResult(item);
-      savePaletteToURL(item);
-    });
-
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.textContent = "Remove";
-    removeBtn.addEventListener("click", () => {
-      const updated = readFavorites();
-      updated.splice(index, 1);
-      writeFavorites(updated);
-      renderFavorites();
-    });
-
-    const actions = document.createElement("div");
-    actions.className = "favorite-actions";
-    actions.appendChild(useBtn);
-    actions.appendChild(removeBtn);
-
-    li.appendChild(meta);
-    li.appendChild(actions);
-    favoriteList.appendChild(li);
+    const li = document.createElement("li"); li.className = "favorite-item";
+    const meta = document.createElement("div"); meta.className = "favorite-meta";
+    const title = document.createElement("strong"); title.textContent = `${item.skinToneText || toneNames[item.tone] || "Palette"} · ${item.undertoneText || item.undertone}`;
+    const details = document.createElement("p"); details.textContent = item.lipstick || "Saved makeup palette"; meta.append(title, details);
+    const actions = document.createElement("div"); actions.className = "favorite-actions";
+    const use = document.createElement("button"); use.type = "button"; use.textContent = "Use"; use.addEventListener("click", () => { $("#skinTone").value = item.tone; $("#undertone").value = item.undertone; $("#occasion").value = item.occasion; currentPalette = item; renderPalette(item); });
+    const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove"; remove.addEventListener("click", () => { const updated = readFavorites(); updated.splice(index, 1); writeStorage(KEYS.favorites, updated); renderFavorites(); });
+    actions.append(use, remove); li.append(meta, actions); favoriteList.append(li);
   });
 }
-
-// --- cart functionality ---
-function readCart() {
+function paletteShareUrl(palette) {
+  const url = new URL(window.location.href); url.search = "";
+  url.searchParams.set("tone", palette.tone); url.searchParams.set("undertone", palette.undertone); url.searchParams.set("occasion", palette.occasion);
+  return url.href;
+}
+async function sharePalette() {
+  if (!currentPalette) return showMessage("Create a palette before sharing it.");
+  const url = paletteShareUrl(currentPalette);
   try {
-    return JSON.parse(localStorage.getItem(CART_KEY)) || [];
-  } catch { return []; }
+    if (navigator.share) await navigator.share({ title: "My Glow & Grace palette", text: `Palette for ${currentPalette.skinToneText} skin and ${currentPalette.undertoneText} undertone.`, url });
+    else { await navigator.clipboard.writeText(url); showMessage("Share link copied to clipboard.", "Ready to share 🔗"); }
+  } catch (error) { if (error.name !== "AbortError") showMessage("Unable to share automatically. You can copy the page URL from your browser."); }
 }
-
-function writeCart(items) {
-  localStorage.setItem(CART_KEY, JSON.stringify(items));
-  renderCart();
+function downloadFile(filename, contents, type) {
+  const url = URL.createObjectURL(new Blob([contents], { type }));
+  const link = document.createElement("a"); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-
-function addToCart(palette) {
-  const subscribed = localStorage.getItem(SUB_KEY) === "true";
-  // If site requires subscription for repeated actions, you can gate here.
-  if (!subscribed && readCart().length >= 3) {
-    // demo policy: non-subscribers can add up to 3 items
-    openSubscribeModal();
-    return;
-  }
-
-  const cart = readCart();
-  cart.push(palette);
-  writeCart(cart);
-  result.hidden = false;
-  result.innerHTML = "<h3>Added to cart 🛍️</h3><p>Your palette was added to the cart.</p>";
+function downloadPalette() {
+  if (!currentPalette) return showMessage("Create a palette before downloading.");
+  downloadFile("glow-grace-palette.json", JSON.stringify(currentPalette, null, 2), "application/json");
 }
-
-function removeFromCart(index) {
-  const cart = readCart();
-  cart.splice(index, 1);
-  writeCart(cart);
+function readCart() { const value = readStorage(KEYS.cart, []); return Array.isArray(value) ? value : []; }
+function saveCart(cart) { writeStorage(KEYS.cart, cart); renderCart(); }
+function addProduct(id) {
+  const product = products.find(item => item.id === id); if (!product) return;
+  const cart = readCart(); const existing = cart.find(item => item.id === id);
+  if (existing) existing.quantity += 1; else cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 });
+  saveCart(cart); showMessage(`${product.name} was added to your cart.`, "Added to cart 🛍️");
 }
-
 function renderCart() {
-  const cart = readCart();
-  cartList.innerHTML = "";
-  cartCount.textContent = cart.length;
-
-  if (!cart.length) {
-    cartList.innerHTML = "<li class='cart-item'>Your cart is empty.</li>";
-    return;
-  }
-
-  cart.forEach((item, idx) => {
-    const li = document.createElement("li");
-    li.className = "cart-item";
-    li.innerHTML = `
-      <div>
-        <strong>${item.skinToneText}</strong>
-        <div class="muted">${item.undertoneText} · ${item.occasion || 'Everyday'}</div>
-      </div>
-      <div>
-        <button class="icon-btn" data-index="${idx}" aria-label="Remove item">Remove</button>
-      </div>
-    `;
-    cartList.appendChild(li);
+  const cart = readCart(); cartList.replaceChildren(); cartCount.textContent = String(cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0));
+  if (!cart.length) { const empty = document.createElement("li"); empty.className = "cart-item"; empty.textContent = "Your cart is empty."; cartList.append(empty); }
+  cart.forEach((item, index) => {
+    const li = document.createElement("li"); li.className = "cart-item";
+    const text = document.createElement("span"); text.textContent = `${item.name} × ${item.quantity} — $${(item.price * item.quantity).toFixed(2)}`;
+    const remove = document.createElement("button"); remove.className = "remove-item"; remove.type = "button"; remove.textContent = "Remove"; remove.addEventListener("click", () => { const updated = readCart(); updated.splice(index, 1); saveCart(updated); });
+    li.append(text, remove); cartList.append(li);
   });
-
-  cartList.querySelectorAll("button[data-index]").forEach(btn => {
-    btn.addEventListener("click", () => removeFromCart(Number(btn.dataset.index)));
-  });
+  const total = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
+  cartTotal.textContent = `Total: $${total.toFixed(2)} (sample only)`;
+}
+function setCartOpen(open) {
+  cartDrawer.classList.toggle("open", open); cartDrawer.setAttribute("aria-hidden", String(!open)); overlay.hidden = !open;
+  if (open) $("#closeCartBtn").focus(); else $("#cartBtn").focus();
+}
+function cartAsCSV(cart) {
+  const quote = value => `"${String(value).replaceAll('"', '""')}"`;
+  return [ ["Name", "Unit price", "Quantity", "Line total"], ...cart.map(item => [item.name, Number(item.price).toFixed(2), item.quantity, (item.price * item.quantity).toFixed(2)]) ].map(row => row.map(quote).join(",")).join("\n");
+}
+function downloadCart(format) {
+  const cart = readCart(); if (!cart.length) return showMessage("Your cart is empty.");
+  if (format === "json") return downloadFile("glow-grace-cart.json", JSON.stringify(cart, null, 2), "application/json");
+  if (format === "csv") return downloadFile("glow-grace-cart.csv", cartAsCSV(cart), "text/csv;charset=utf-8");
+  if (!window.jspdf?.jsPDF) return showMessage("PDF export is unavailable. Try JSON or CSV instead.");
+  const doc = new window.jspdf.jsPDF(); let y = 20; doc.setFontSize(18); doc.text("Glow & Grace — Cart", 14, y); y += 12; doc.setFontSize(11);
+  cart.forEach(item => { const lines = doc.splitTextToSize(`${item.name} × ${item.quantity} — $${(item.price * item.quantity).toFixed(2)}`, 175); if (y + lines.length * 7 > 280) { doc.addPage(); y = 20; } doc.text(lines, 14, y); y += lines.length * 7 + 3; });
+  doc.save("glow-grace-cart.pdf");
+}
+function loadPaletteFromUrl() {
+  const params = new URLSearchParams(location.search); const tone = params.get("tone"); const undertone = params.get("undertone"); const occasion = params.get("occasion");
+  if (!tone || !undertone || !toneNames[tone] || !advice[undertone] || !occasions[occasion]) return;
+  $("#skinTone").value = tone; $("#undertone").value = undertone; $("#occasion").value = occasion;
+  currentPalette = buildPalette(); renderPalette(currentPalette);
 }
 
-// --- cart downloads ---
-function downloadCartJSON() {
-  const cart = readCart();
-  if (!cart.length) {
-    result.hidden = false;
-    result.textContent = "Cart is empty.";
-    return;
-  }
+menuBtn.addEventListener("click", () => { const open = navLinks.classList.toggle("open"); menuBtn.setAttribute("aria-expanded", String(open)); });
+navLinks.querySelectorAll("a").forEach(link => link.addEventListener("click", () => { navLinks.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }));
+themeToggle.addEventListener("click", () => setTheme(document.body.classList.contains("dark-mode") ? "light" : "dark"));
+beautyForm.addEventListener("submit", event => { event.preventDefault(); currentPalette = buildPalette(); if (!currentPalette) return showMessage("Please select your skin tone and undertone."); renderPalette(currentPalette); });
+$("#savePaletteBtn").addEventListener("click", saveFavorite);
+$("#sharePaletteBtn").addEventListener("click", sharePalette);
+$("#downloadPaletteBtn").addEventListener("click", downloadPalette);
+$("#cartBtn").addEventListener("click", () => setCartOpen(true));
+$("#closeCartBtn").addEventListener("click", () => setCartOpen(false));
+overlay.addEventListener("click", () => setCartOpen(false));
+$("#downloadCartJson").addEventListener("click", () => downloadCart("json"));
+$("#downloadCartCsv").addEventListener("click", () => downloadCart("csv"));
+$("#downloadCartPdf").addEventListener("click", () => downloadCart("pdf"));
+$("#subscribeBtn").addEventListener("click", () => infoDialog.showModal());
+$("#closeInfoDialog").addEventListener("click", () => infoDialog.close());
+infoDialog.addEventListener("click", event => { if (event.target === infoDialog) infoDialog.close(); });
 
-  const blob = new Blob([JSON.stringify(cart, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'glow-grace-cart.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function downloadCartPDF() {
-  const cart = readCart();
-  if (!cart.length) {
-    result.hidden = false;
-    result.textContent = "Cart is empty.";
-    return;
-  }
-
-  // Use jsPDF to create a simple PDF
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.setFontSize(18);
-  doc.text('Glow & Grace - Cart', 14, 22);
-  doc.setFontSize(12);
-  let y = 36;
-  cart.forEach((item, idx) => {
-    doc.text(`${idx+1}. ${item.skinToneText} — ${item.undertoneText} (${item.occasion || 'Everyday'})`, 14, y);
-    y += 6;
-    doc.text(`   Lipstick: ${item.lipstick}`, 18, y);
-    y += 6;
-    doc.text(`   Blush: ${item.blush}`, 18, y);
-    y += 10;
-    if (y > 270) { doc.addPage(); y = 20; }
-  });
-
-  doc.save('glow-grace-cart.pdf');
-}
-
-// --- subscribe modal & demo subscription ---
-function openSubscribeModal() {
-  subscribeModal.classList.add('open');
-  subscribeModal.setAttribute('aria-hidden', 'false');
-}
-
-function closeSubscribeModal() {
-  subscribeModal.classList.remove('open');
-  subscribeModal.setAttribute('aria-hidden', 'true');
-}
-
-closeModal.addEventListener('click', closeSubscribeModal);
-
-subscribeDemoBtn.addEventListener('click', () => {
-  // Demo subscription: set a flag in localStorage
-  localStorage.setItem(SUB_KEY, 'true');
-  closeSubscribeModal();
-  result.hidden = false;
-  result.innerHTML = '<h3>Subscribed 🎉</h3><p>You are now subscribed (demo). Refresh to keep the state.</p>';
-});
-
-// Checkout button opens subscription modal (or real checkout if server configured)
-checkoutBtn.addEventListener('click', () => {
-  // If you have a server with Stripe, you would call the server to create a Checkout session
-  // For this demo we simply open the subscribe modal
-  openSubscribeModal();
-});
-
-// --- event wiring ---
-beautyForm.addEventListener("submit", event => {
-  event.preventDefault();
-
-  const palette = buildPaletteFromForm();
-
-  if (!palette) {
-    result.hidden = false;
-    result.textContent = "Please select your skin tone and undertone.";
-    return;
-  }
-
-  currentPalette = palette;
-  applyPreview(palette);
-  renderResult(palette);
-  savePaletteToURL(palette);
-});
-
-savePaletteBtn.addEventListener("click", () => {
-  if (!currentPalette) {
-    result.hidden = false;
-    result.textContent = "Generate a palette first, then save it as a favourite.";
-    return;
-  }
-
-  const favorites = readFavorites();
-  const alreadyExists = favorites.some(item => {
-    return item.tone === currentPalette.tone &&
-           item.undertone === currentPalette.undertone &&
-           item.occasion === currentPalette.occasion;
-  });
-
-  if (alreadyExists) {
-    result.hidden = false;
-    result.innerHTML = "<h3>Already saved ✨</h3><p>This palette is already in your favourites.</p>";
-    return;
-  }
-
-  favorites.unshift(currentPalette);
-  writeFavorites(favorites);
-  renderFavorites();
-
-  result.hidden = false;
-  result.innerHTML = "<h3>Saved to favourites 💖</h3><p>Your palette has been added to your saved looks.</p>";
-});
-
-sharePaletteBtn.addEventListener("click", async () => {
-  if (!currentPalette) {
-    result.hidden = false;
-    result.textContent = "Generate a palette first, then share it.";
-    return;
-  }
-
-  const shareUrl = `${window.location.origin}${window.location.pathname}?tone=${currentPalette.tone}&undertone=${currentPalette.undertone}&occasion=${currentPalette.occasion || "everyday"}`;
-
-  try {
-    if (navigator.share) {
-      await navigator.share({
-        title: "Glow & Grace Makeup Palette",
-        text: `My Glow & Grace palette: ${currentPalette.skinToneText} skin, ${currentPalette.undertoneText} undertone.`,
-        url: shareUrl
-      });
-      return;
-    }
-
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareUrl);
-      result.hidden = false;
-      result.innerHTML = "<h3>Link copied! 🔗</h3><p>Your palette link has been copied to the clipboard.</p>";
-      return;
-    }
-
-    window.prompt("Copy this palette link:", shareUrl);
-  } catch (error) {
-    result.hidden = false;
-    result.innerHTML = "<h3>Share cancelled</h3><p>You can still copy the palette link manually.</p>";
-  }
-});
-
-// Add to cart
-addToCartBtn.addEventListener('click', () => {
-  if (!currentPalette) {
-    result.hidden = false;
-    result.textContent = 'Generate a palette first.';
-    return;
-  }
-  addToCart(currentPalette);
-});
-
-// Cart UI
-cartBtn.addEventListener('click', () => {
-  cartDrawer.classList.toggle('open');
-  cartDrawer.setAttribute('aria-hidden', cartDrawer.classList.contains('open') ? 'false' : 'true');
-  renderCart();
-});
-
-closeCartBtn.addEventListener('click', () => {
-  cartDrawer.classList.remove('open');
-  cartDrawer.setAttribute('aria-hidden', 'true');
-});
-
-downloadCartJson.addEventListener('click', downloadCartJSON);
-downloadCartPdf.addEventListener('click', downloadCartPDF);
-
-// --- initialize ---
-function init() {
-  initTheme();
-  renderFavorites();
-  renderCart();
-  loadPaletteFromURL();
-}
-
-init();
-
+document.addEventListener("keydown", event => { if (event.key === "Escape" && cartDrawer.classList.contains("open")) setCartOpen(false); });
+initTheme(); renderProducts(); renderFavorites(); renderCart(); loadPaletteFromUrl();
